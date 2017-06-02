@@ -14,11 +14,12 @@ import com.pasa.aidl.testlib.IMainService;
 import com.pasa.aidl.testlib.IThreadListener;
 import com.pasa.aidl.testlib.ParcelFileDescriptorUtil;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
 public class MainActivity extends AppCompatActivity {
-    private static final String TAG = "MainActivity";
+    private static final String TAG = "MainActivityzzz";
     private IMainService mService;
     private TextView mLog;
 
@@ -47,6 +48,7 @@ public class MainActivity extends AppCompatActivity {
             mService = IMainService.Stub.asInterface(service);
 
             passFileDescriptorForReadToService();
+            passFileDescriptorForWriteToService();
         }
 
         @Override
@@ -75,6 +77,30 @@ public class MainActivity extends AppCompatActivity {
         }
         catch (RemoteException e) {
             Log.e(TAG, "Failed to read input stream " + e);
+        }
+    }
+
+    private void passFileDescriptorForWriteToService() {
+        final ByteArrayOutputStream os = new ByteArrayOutputStream();
+        Log.e(TAG, "passFileDescriptorForWriteToService: ");
+        try {
+            ParcelFileDescriptor output = ParcelFileDescriptorUtil.pipeTo(os,
+                    new IThreadListener() {
+                        @Override
+                        public void onThreadFinished(Thread thread) {
+                            Log.e(TAG, "Service wrote result strLen = " + os.toByteArray().length + " result = " + os.toString());
+                            mLog.append(os.toString());
+                        }
+                    });
+
+            mService.writeOutputFileDescriptor(output);
+            output.close();
+        }
+        catch (IOException e) {
+            Log.e(TAG, "Failed to pipeFrom intup stream " + e);
+        }
+        catch (RemoteException e) {
+            Log.e(TAG, "Failed to write input stream " + e);
         }
     }
 }

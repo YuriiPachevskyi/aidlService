@@ -8,6 +8,7 @@ import android.os.RemoteException;
 import android.util.Log;
 import com.pasa.aidl.testlib.IMainService;
 import org.apache.commons.io.IOUtils;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -39,13 +40,44 @@ public class MainService extends Service {
                 int strLen = IOUtils.copy(is, os);
                 inputResult = os.toString();
 
-                Log.e(TAG, "strLen = " + strLen + " content = " + inputResult);
+                Log.e(TAG, "read result strLen = " + strLen + " content = " + inputResult);
 
                 is.close();
                 os.close();
             }
             catch (IOException e) {
                 Log.e(TAG, "Failed to read input " + e);
+            }
+            finally {
+                try {
+                    is.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                try {
+                    os.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        @Override
+        public void writeOutputFileDescriptor(ParcelFileDescriptor output) throws RemoteException {
+            InputStream is = new ByteArrayInputStream("Hello from service side!!!".getBytes());
+            OutputStream os = new ParcelFileDescriptor.AutoCloseOutputStream(output);
+
+            try {
+                int count = IOUtils.copy(is, os);
+                os.flush();
+
+                Log.d(TAG, "wrote result strLen" + count);
+
+                is.close();
+                os.close();
+            }
+            catch (IOException e) {
+                Log.e(TAG, "Failed to wrote result " + e);
             }
             finally {
                 try {
