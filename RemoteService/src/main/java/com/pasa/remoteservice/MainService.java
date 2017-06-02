@@ -3,9 +3,15 @@ package com.pasa.remoteservice;
 import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
+import android.os.ParcelFileDescriptor;
 import android.os.RemoteException;
 import android.util.Log;
 import com.pasa.aidl.testlib.IMainService;
+import org.apache.commons.io.IOUtils;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 public class MainService extends Service {
     private static final String TAG = "MainService";
@@ -23,6 +29,38 @@ public class MainService extends Service {
     }
 
     private final IMainService.Stub mBinder = new IMainService.Stub() {
+        @Override
+        public void readInputFileDescriptor(ParcelFileDescriptor input) throws RemoteException {
+            InputStream is = new ParcelFileDescriptor.AutoCloseInputStream(input);
+            OutputStream os = new ByteArrayOutputStream();
+            String inputResult = "uninitialized";
+
+            try {
+                int strLen = IOUtils.copy(is, os);
+                inputResult = os.toString();
+
+                Log.e(TAG, "strLen = " + strLen + " content = " + inputResult);
+
+                is.close();
+                os.close();
+            }
+            catch (IOException e) {
+                Log.e(TAG, "Failed to read input " + e);
+            }
+            finally {
+                try {
+                    is.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                try {
+                    os.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
         @Override
         public void exit() throws RemoteException {
             Log.e(TAG, "exit: Received exit command.");
