@@ -1,4 +1,4 @@
-package com.afollestad.aidlexample;
+package com.pasa.remoteclient;
 
 import android.content.ComponentName;
 import android.content.Intent;

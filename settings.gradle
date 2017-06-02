@@ -1,1 +1,3 @@
-include ':app', ':RemoteService', ':aidl'
+include ':aidl'
+include ':RemoteService'
+include ':RemoteClient'
