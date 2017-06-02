@@ -5,12 +5,20 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.os.ParcelFileDescriptor;
+import android.os.RemoteException;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.widget.TextView;
 import com.pasa.aidl.testlib.IMainService;
+import com.pasa.aidl.testlib.IThreadListener;
+import com.pasa.aidl.testlib.ParcelFileDescriptorUtil;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 
 public class MainActivity extends AppCompatActivity {
-
+    private static final String TAG = "MainActivity";
     private IMainService mService;
     private TextView mLog;
 
@@ -37,6 +45,8 @@ public class MainActivity extends AppCompatActivity {
         public void onServiceConnected(ComponentName className, IBinder service) {
             mLog.append("Service binded!\n");
             mService = IMainService.Stub.asInterface(service);
+
+            passFileDescriptorForReadToService();
         }
 
         @Override
@@ -45,4 +55,26 @@ public class MainActivity extends AppCompatActivity {
             mLog.append("Service disconnected.\n");
         }
     };
+
+    private void passFileDescriptorForReadToService() {
+        InputStream is = new ByteArrayInputStream("Hello remote service from client side".getBytes());
+
+        try {
+            ParcelFileDescriptor input = ParcelFileDescriptorUtil.pipeFrom(is,
+                    new IThreadListener() {
+                        @Override
+                        public void onThreadFinished(Thread thread) {
+                            Log.d(TAG, "Copy to service finished");
+                        }
+                    });
+
+            mService.readInputFileDescriptor(input);
+        }
+        catch (IOException e) {
+            Log.e(TAG, "Failed to pipeFrom intup stream " + e);
+        }
+        catch (RemoteException e) {
+            Log.e(TAG, "Failed to read input stream " + e);
+        }
+    }
 }
