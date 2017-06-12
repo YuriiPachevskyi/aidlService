@@ -13,15 +13,20 @@ import android.widget.TextView;
 import com.pasa.aidl.testlib.IMainService;
 import com.pasa.aidl.testlib.IThreadListener;
 import com.pasa.aidl.testlib.ParcelFileDescriptorUtil;
+import com.pasa.remoteclient.servicebindingtool.IServiceBindingListener;
+import com.pasa.remoteclient.servicebindingtool.ServiceBindingHelper;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements IServiceBindingListener<SimpleService> {
     private static final String TAG = "MainActivityzzz";
     private IMainService mService;
     private TextView mLog;
+    private ServiceBindingHelper<SimpleService> mSimpleServiceHelper_;
+    private SimpleService mSimpleService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,14 +35,29 @@ public class MainActivity extends AppCompatActivity {
 
         mLog = (TextView) findViewById(R.id.log);
 
-        Intent serviceIntent = new Intent()
-                .setComponent(new ComponentName(
-                        "com.pasa.remoteservice",
-                        "com.pasa.remoteservice.MainService"));
+        mSimpleServiceHelper_ = new ServiceBindingHelper<>(this, SimpleService.class);
+//        Intent serviceIntent = new Intent().setComponent(new ComponentName("com.pasa.remoteservice", "com.pasa.remoteservice.MainService"));
         mLog.setText("Starting service…\n");
-        startService(serviceIntent);
+//        startService(serviceIntent);
         mLog.append("Binding service…\n");
-        bindService(serviceIntent, mConnection, BIND_AUTO_CREATE);
+//        bindService(serviceIntent, mConnection, BIND_AUTO_CREATE);
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        mSimpleServiceHelper_.bind();
+        mSimpleServiceHelper_.addListener(this);
+    }
+
+    @Override
+    protected void onStop() {
+        if (mSimpleService != null) {
+            mSimpleService.stop();
+        }
+        mSimpleServiceHelper_.unbind();
+        mSimpleServiceHelper_.removeListener(this);
+        super.onStop();
     }
 
     private ServiceConnection mConnection = new ServiceConnection() {
@@ -102,5 +122,18 @@ public class MainActivity extends AppCompatActivity {
         catch (RemoteException e) {
             Log.e(TAG, "Failed to write input stream " + e);
         }
+    }
+
+    @Override
+    public void onServiceBound(SimpleService service) {
+        Log.e(TAG, "onServiceBound: zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz");
+        mSimpleService = service;
+        mSimpleService.runOnServiceSide();
+    }
+
+    @Override
+    public void onServiceUnbound() {
+        Log.e(TAG, "onServiceUnbound: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+        mSimpleService = null;
     }
 }
